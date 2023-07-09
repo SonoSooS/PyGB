@@ -42,6 +42,23 @@ def generic_continue(cpu, op):
     
     return UOP_CONTINUE
 
+def generic_cc_check(cpu, op):
+    # (void)op
+    
+    return UOP_CC_CHECK
+
+def generic_cc_check_op1(cpu, op):
+    
+    generic_fetch_op1(cpu, op)
+    
+    return UOP_CC_CHECK
+
+def generic_cc_check_op2(cpu, op):
+    
+    generic_fetch_op2(cpu, op)
+    
+    return UOP_CC_CHECK
+
 def generic_store_DV_A(cpu, op):
     # (void)op
     
@@ -49,10 +66,18 @@ def generic_store_DV_A(cpu, op):
     
     return UOP_GENERIC_FETCH
 
-def generic_push_PC_M0(cpu, op):
+def generic_store_DV_r8(cpu, op):
+    '''Load DV into r8'''
+    
+    regval = cpu.DV
+    h.reg_write_by_id_8(cpu, (op >> 3) & 7, regval)
+    
+    return UOP_GENERIC_FETCH
+
+def generic_push_decrement(cpu, op):
     # (void)op
     
-    cpu.reg.ImmH = cpu.DV # for CALL
+    cpu.reg.ImmH = cpu.DV # for some instructions
     _ = cpu.reg.SPd
     
     return UOP_CONTINUE
@@ -68,6 +93,22 @@ def generic_push_PC_M2(cpu, op):
     # (void)op
     
     cpu.DoWrite(cpu.reg.SP, cpu.reg.PCL)
+    
+    return UOP_CONTINUE
+
+def generic_pop_M0(cpu, op):
+    # (void)op
+    
+    cpu.DoRead(cpu.reg.SPi)
+    
+    return UOP_CONTINUE
+
+def generic_pop_M1(cpu, op):
+    # (void)op
+    
+    cpu.reg.ImmL = cpu.DV
+    
+    cpu.DoRead(cpu.reg.SPi)
     
     return UOP_CONTINUE
 
@@ -95,14 +136,6 @@ def ISR_push_PC_M2(cpu, op):
 def MOV_r8_r8(cpu, op):
     '''Move one register to other (does not support [HL])'''
     regval = h.reg_read_by_id_8(cpu, op & 7)
-    h.reg_write_by_id_8(cpu, (op >> 3) & 7, regval)
-    
-    return UOP_GENERIC_FETCH
-
-def LDR_r8_DV(cpu, op):
-    '''Load DV into r8'''
-    
-    regval = cpu.DV
     h.reg_write_by_id_8(cpu, (op >> 3) & 7, regval)
     
     return UOP_GENERIC_FETCH
@@ -332,25 +365,12 @@ def LD_r16_n16_M2(cpu, op):
     
     return UOP_GENERIC_FETCH
 
-def LD_r8_n8(cpu, op):
-    reg = (op >> 3) & 7
-    h.reg_write_by_id_8(cpu, reg, cpu.DV)
-    
-    return UOP_GENERIC_FETCH
-
 def LD_uHL_n8(cpu, op):
     # (void)op
     
     cpu.DoWrite(cpu.reg.HL, cpu.DV)
     
     return UOP_CONTINUE
-
-def JR_cc(cpu, op):
-    # (void)op
-    
-    generic_fetch_op1(cpu, op)
-    
-    return UOP_CC_CHECK
 
 def JR(cpu, op):
     # (void)op
@@ -586,27 +606,6 @@ def CB_mode(cpu, op):
     
     return UOP_CONTINUE
 
-def RET_cc(cpu, op):
-    # (void)op
-    
-    return UOP_CC_CHECK
-
-def RET_M0(cpu, op):
-    # (void)op
-    
-    cpu.DoRead(cpu.reg.SPi)
-    
-    return UOP_CONTINUE
-
-def RET_M1(cpu, op):
-    # (void)op
-    
-    cpu.reg.ImmL = cpu.DV
-    
-    cpu.DoRead(cpu.reg.SPi)
-    
-    return UOP_CONTINUE
-
 def RET_M2(cpu, op):
     # (void)op
     
@@ -638,20 +637,6 @@ def CALL(cpu, op):
     cpu.reg.PC = cpu.reg.Imm
     
     return UOP_GENERIC_FETCH
-
-def CALL_cc(cpu, op):
-    # (void)op
-    
-    generic_fetch_op2(cpu, op)
-    
-    return UOP_CC_CHECK
-
-def JP_cc(cpu, op):
-    # (void)op
-    
-    generic_fetch_op2(cpu, op)
-    
-    return UOP_CC_CHECK
 
 def JP_ok(cpu, op):
     # (void)op
@@ -703,39 +688,20 @@ def PUSH_M2(cpu, op):
     
     return UOP_CONTINUE
 
-def POP_M0(cpu, op):
-    # (void)op
-    
-    cpu.DoRead(cpu.reg.SPi)
-    
-    return UOP_CONTINUE
-
-def POP_M1(cpu, op):
-    
-    reg = (op >> 4) & 3
-    if reg == 0:
-        cpu.reg.C = cpu.DV
-    elif reg == 1:
-        cpu.reg.E = cpu.DV
-    elif reg == 2:
-        cpu.reg.L = cpu.DV
-    elif reg == 3:
-        cpu.reg.F = cpu.DV & 0xF0
-    
-    cpu.DoRead(cpu.reg.SPi)
-    
-    return UOP_CONTINUE
-
 def POP_M2(cpu, op):
     
     reg = (op >> 4) & 3
     if reg == 0:
+        cpu.reg.C = cpu.reg.ImmL
         cpu.reg.B = cpu.DV
     elif reg == 1:
+        cpu.reg.E = cpu.reg.ImmL
         cpu.reg.D = cpu.DV
     elif reg == 2:
+        cpu.reg.L = cpu.reg.ImmL
         cpu.reg.H = cpu.DV
     elif reg == 3:
+        cpu.reg.F = cpu.reg.ImmL & 0xF0
         cpu.reg.A = cpu.DV
     
     return UOP_GENERIC_FETCH
