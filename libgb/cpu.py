@@ -363,6 +363,8 @@ class CPU:
                     return self.STATUS_HALTED
             elif self.IS_STOP:
                 return self.STATUS_STOP_GLITCH
+            else:
+                status = self.STATUS_NOSLEEP
                 
         
         if self.STATE_IDX < 0:
