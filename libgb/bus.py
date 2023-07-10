@@ -36,7 +36,7 @@ class Bus:
         self.MemReq = True
     
     def AccessFrom(self, bus, force=False):
-        if not force and self.MemReq:
+        if (not force and self.MemReq) or not bus.MemReq:
             return
         
         self.MemReq = True
