@@ -39,6 +39,18 @@ def main():
     
     pause = False
     
+    def DIV_update(new, old):
+        if tmpio[0x07] & 4:
+            bit = 1 << (7, 1, 3, 5)[tmpio[0x07]&3]
+            if not (new & bit) and not not (old & bit):
+                val = tmpio[0x05]
+                if val == 0xFF:
+                    val = tmpio[0x06]
+                    cpu.IRQ_SetM(1 << 2)
+                else:
+                    val += 1
+                tmpio[0x05] = val
+    
     while True:
         if cpu.reg.PC == 0x101:
             pause = True
@@ -70,20 +82,11 @@ def main():
                     else:
                         print("- $%02X M%u" % (cpu.IR, cpu.STATE_IDX - 1))
         
-        if tmpio[0x07] & 4:
-            bit = 1 << (7, 1, 3, 5)[tmpio[0x07]&3]
-            if not (cpu.DIV & bit) and not not (cpu.DIV_PREV & bit):
-                val = tmpio[0x05]
-                if val == 0xFF:
-                    val = tmpio[0x06]
-                    cpu.IRQ_SetM(1 << 2)
-                else:
-                    val += 1
-                tmpio[0x05] = val
-        
         cpu.StepPre()
         
         cpu.bus.Reset()
+        
+        DIV_update(cpu.DIV, cpu.DIV_PREV)
         
         try:
             status = cpu.Step()
@@ -152,6 +155,7 @@ def main():
                         cpu.IRQ_Clear(~cpu.bus.Data & 0x1F)
                         #pause = True
                     elif address == 0xFF04:
+                        DIV_update(0, cpu.DIV)
                         cpu.DIV = 0
                     else:
                         tmpio[address & 0xFF] = cpu.bus.Data
