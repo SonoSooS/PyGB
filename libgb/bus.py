@@ -1,6 +1,20 @@
 
+BUS_ACCESS_READ = 1
+BUS_ACCESS_WRITE = 2
+BUS_ACCESS_MEMREQ = 4
+
 class Bus:
-    __slots__ = ('Address', 'Data', 'RD', 'WR', 'MemReq')
+    __slots__ = ('Address', 'Data', 'Access')
+    
+    @property
+    def RD(self):
+        return not not (self.Access & BUS_ACCESS_READ)
+    @property
+    def WR(self):
+        return not not (self.Access & BUS_ACCESS_WRITE)
+    @property
+    def MemReq(self):
+        return not not (self.Access & BUS_ACCESS_MEMREQ)
     
     def __init__(self):
         self.Reset()
@@ -8,9 +22,7 @@ class Bus:
     def Reset(self):
         self.Address = 0xFFFF
         self.Data = 0xFF
-        self.RD = False
-        self.WR = False
-        self.MemReq = False
+        self.Access = 0
     
     def SetAddress(self, address):
         self.Address &= address
@@ -20,28 +32,26 @@ class Bus:
     
     def PerformRead(self, address):
         self.SetAddress(address)
-        self.RD = True
+        self.Access = BUS_ACCESS_READ
     
     def PerformReadExt(self, address):
         self.PerformRead(address)
-        self.MemReq = True
+        self.Access |= BUS_ACCESS_MEMREQ
     
     def PerformWrite(self, address, data):
         self.SetAddress(address)
         self.SetData(data)
-        self.WR = True
+        self.Access = BUS_ACCESS_WRITE
     
     def PerformWriteExt(self, address, data):
         self.PerformWrite(address, data)
-        self.MemReq = True
+        self.Access |= BUS_ACCESS_MEMREQ
     
     def AccessFrom(self, bus, force=False):
-        if (not force and self.MemReq) or not bus.MemReq:
+        if (not force and (self.Access & BUS_ACCESS_MEMREQ)) or not (bus.Access & BUS_ACCESS_MEMREQ):
             return
         
-        self.MemReq = True
-        self.RD = bus.RD
-        self.WR = bus.WR
+        self.Access = bus.Access | BUS_ACCESS_MEMREQ
         
         self.SetAddress(bus.Address)
         self.SetData(bus.Data)

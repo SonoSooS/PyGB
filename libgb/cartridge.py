@@ -9,6 +9,8 @@ MAPPERS = \
 )
 
 class Cartridge:
+    __slots__ = ('ROM', 'NBANKS', 'RAM', 'NRAM', 'OFF0', 'OFFN', 'BANKSEL', 'BANKSEL2', 'BANKMODE', 'RAMENA')
+    
     def __init__(self, data, ramsize=0):
         romlen = len(data)
         if romlen & (romlen - 1): # check for round size
@@ -31,6 +33,8 @@ class Cartridge:
         self.RAMENA = False
         self.RAM = array('B', (0,) * ramsize)
         self.NRAM = ramsize >> 13
+        
+        self.UpdateCache()
             
     
     def OnRead(self, bus):
@@ -53,10 +57,14 @@ class Cartridge:
             self.OnWriteRAM(address & 0x1FFF, bus.Data)
     
     def OnReadROM0(self, bus, address):
-        pass
+        offset = self.OFF0
+        data = self.ROM[offset | address]
+        bus.SetData(data)
     
     def OnReadROMN(self, bus, address):
-        pass
+        offset = self.OFFN
+        data = self.ROM[offset | address]
+        bus.SetData(data)
     
     def OnReadRAM(self, bus, address):
         pass
@@ -66,6 +74,10 @@ class Cartridge:
     
     def OnWriteRAM(self, address, data):
         pass
+    
+    def UpdateCache(self):
+        self.OFF0 = 0
+        self.OFFN = ((self.BANKSEL2 << 22) | (self.BANKSEL << 14)) & ((self.NBANKS << 14) - 1)
     
     @staticmethod
     def ClassFromHeuristics(hdr):

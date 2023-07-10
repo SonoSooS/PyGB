@@ -29,6 +29,8 @@ def main():
     
     cpu.reg.PC = 0x100
     
+    cpubus = cpu.bus
+    
     tmpwram = [0] * 0x2000
     tmpvram = [0] * 0x2000
     tmpio = [0xFF] * 255
@@ -84,7 +86,7 @@ def main():
         
         cpu.StepPre()
         
-        cpu.bus.Reset()
+        cpubus.Reset()
         
         DIV_update(cpu.DIV, cpu.DIV_PREV)
         
@@ -100,71 +102,68 @@ def main():
         
         buslog("$%04X: %12s " % (cpu.reg.PC, CPU.ToString_Status(status)), end='')
         
-        if cpu.bus.MemReq:
-            assert cpu.bus.RD or cpu.bus.WR
+        if cpubus.Access:
+            assert cpubus.RD or cpubus.WR
             
-            address = cpu.bus.Address
+            address = cpubus.Address
             
-            if cpu.bus.RD:
-                if address < 0x8000:
-                    cart.OnRead(cpu.bus)
-                elif address < 0xA000:
-                    cpu.bus.SetData(tmpvram[address & 0x1FFF])
-                elif address < 0xC000:
-                    cart.OnRead(cpu.bus)
-                else:
-                    cpu.bus.SetData(tmpwram[address & 0x1FFF])
-                
-                buslog(("- Ext access [$%04X] --> $%02X" % (cpu.bus.Address, cpu.bus.Data)))
-            elif cpu.bus.WR:
-                buslog(("- Ext access [$%04X] <-- $%02X" % (cpu.bus.Address, cpu.bus.Data)))
-                
-                if address < 0x8000:
-                    cart.OnWrite(cpu.bus)
-                elif address < 0xA000:
-                    tmpvram[address & 0x1FFF] = cpu.bus.Data
-                elif address < 0xC000:
-                    cart.OnWrite(cpu.bus)
-                else:
-                    tmpwram[address & 0x1FFF] = cpu.bus.Data
-                
-        elif cpu.bus.RD or cpu.bus.WR:
-            address = cpu.bus.Address
-            
-            if cpu.bus.RD:
-                if address >= 0xFF00:
-                    if address == 0xFFFF:
-                        cpu.bus.SetData(cpu.REG_IE)
-                    elif address == 0xFF0F:
-                        cpu.bus.SetData(cpu.REG_IF | 0xE0)
-                        #pause = True
-                    elif address == 0xFF04:
-                        cpu.bus.SetData((cpu.DIV >> 6) & 0xFF)
+            if cpubus.MemReq:
+                if cpubus.RD:
+                    if address < 0x8000:
+                        cart.OnRead(cpubus)
+                    elif address < 0xA000:
+                        cpubus.SetData(tmpvram[address & 0x1FFF])
+                    elif address < 0xC000:
+                        cart.OnRead(cpubus)
                     else:
-                        cpu.bus.SetData(tmpio[address & 0xFF])
-                
-                buslog(("- Int access [$%04X] --> $%02X" % (cpu.bus.Address, cpu.bus.Data)))
-            elif cpu.bus.WR:
-                buslog(("- Int access [$%04X] <-- $%02X" % (cpu.bus.Address, cpu.bus.Data)))
-                
-                if address >= 0xFF00:
-                    if address == 0xFFFF:
-                        cpu.REG_IE = cpu.bus.Data
-                    elif address == 0xFF0F:
-                        cpu.IRQ_SetM(cpu.bus.Data & 0x1F)
-                        cpu.IRQ_Clear(~cpu.bus.Data & 0x1F)
-                        #pause = True
-                    elif address == 0xFF04:
-                        DIV_update(0, cpu.DIV)
-                        cpu.DIV = 0
+                        cpubus.SetData(tmpwram[address & 0x1FFF])
+                    
+                    buslog(("- Ext access [$%04X] --> $%02X" % (cpubus.Address, cpubus.Data)))
+                elif cpubus.WR:
+                    buslog(("- Ext access [$%04X] <-- $%02X" % (cpubus.Address, cpubus.Data)))
+                    
+                    if address < 0x8000:
+                        cart.OnWrite(cpubus)
+                    elif address < 0xA000:
+                        tmpvram[address & 0x1FFF] = cpubus.Data
+                    elif address < 0xC000:
+                        cart.OnWrite(cpubus)
                     else:
-                        tmpio[address & 0xFF] = cpu.bus.Data
-                        if address == 0xFF01:
-                            sys.stdout.write(chr(cpu.bus.Data))
-                            sys.stdout.flush()
-                
-        elif cpu.bus.Address != 0xFFFF:
-            #buslog("- Bus idle %04X" % cpu.bus.Address)
+                        tmpwram[address & 0x1FFF] = cpubus.Data
+            else:
+                if cpubus.RD:
+                    if address >= 0xFF00:
+                        if address == 0xFFFF:
+                            cpubus.SetData(cpu.REG_IE)
+                        elif address == 0xFF0F:
+                            cpubus.SetData(cpu.REG_IF | 0xE0)
+                            #pause = True
+                        elif address == 0xFF04:
+                            cpubus.SetData((cpu.DIV >> 6) & 0xFF)
+                        else:
+                            cpubus.SetData(tmpio[address & 0xFF])
+                    
+                    buslog(("- Int access [$%04X] --> $%02X" % (cpubus.Address, cpubus.Data)))
+                elif cpubus.WR:
+                    buslog(("- Int access [$%04X] <-- $%02X" % (cpubus.Address, cpubus.Data)))
+                    
+                    if address >= 0xFF00:
+                        if address == 0xFFFF:
+                            cpu.REG_IE = cpubus.Data
+                        elif address == 0xFF0F:
+                            cpu.IRQ_SetM(cpubus.Data & 0x1F)
+                            cpu.IRQ_Clear(~cpubus.Data & 0x1F)
+                            #pause = True
+                        elif address == 0xFF04:
+                            DIV_update(0, cpu.DIV)
+                            cpu.DIV = 0
+                        else:
+                            tmpio[address & 0xFF] = cpubus.Data
+                            if address == 0xFF01:
+                                sys.stdout.write(chr(cpubus.Data))
+                                sys.stdout.flush()
+        elif cpubus.Address != 0xFFFF:
+            buslog("- Bus idle %04X" % cpubus.Address)
             pass
         else:
             buslog()

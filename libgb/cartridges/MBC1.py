@@ -1,15 +1,9 @@
 from ..cartridge import Cartridge
 
 class MBC1(Cartridge):
-    def OnReadROM0(self, bus, address):
-        offset = (self.BANKSEL2 << 19) & ((self.NBANKS << 14) - 1) if self.BANKMODE else 0
-        data = self.ROM[offset | address]
-        bus.SetData(data)
-    
-    def OnReadROMN(self, bus, address):
-        offset = ((self.BANKSEL2 << 19) | (self.BANKSEL << 14)) & ((self.NBANKS << 14) - 1)
-        data = self.ROM[offset | address]
-        bus.SetData(data)
+    def UpdateCache(self):
+        self.OFF0 = (self.BANKSEL2 << 19) & ((self.NBANKS << 14) - 1) if self.BANKMODE else 0
+        self.OFFN = ((self.BANKSEL2 << 19) | (self.BANKSEL << 14)) & ((self.NBANKS << 14) - 1)
     
     def OnReadRAM(self, bus, address):
         if not self.RAMENA:
@@ -35,6 +29,8 @@ class MBC1(Cartridge):
             self.BANKSEL2 = data & 3
         elif case == 3: # MODE
             self.BANKMODE = not not (data & 1)
+        
+        self.UpdateCache()
             
     
     def OnWriteRAM(self, address, data):
