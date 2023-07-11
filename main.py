@@ -3,6 +3,7 @@ from glob import glob
 
 from libgb.cpu import CPU
 from libgb.cartridge import Cartridge
+from libgb.bus import BUS_ACCESS_READ, BUS_ACCESS_WRITE, BUS_ACCESS_MEMREQ
 
 def buslog(*args, **kwargs): pass
 #def buslog(*args, **kwargs): print(*args, **kwargs)
@@ -100,15 +101,16 @@ def main():
             #pause = True
             pass
         
-        buslog("$%04X: %12s " % (cpu.reg.PC, CPU.ToString_Status(status)), end='')
+        #buslog("$%04X: %12s " % (cpu.reg.PC, CPU.ToString_Status(status)), end='')
         
-        if cpubus.Access:
-            assert cpubus.RD or cpubus.WR
+        busaccess = cpubus.Access
+        if busaccess:
+            assert busaccess & (BUS_ACCESS_READ | BUS_ACCESS_WRITE)
             
             address = cpubus.Address
             
-            if cpubus.MemReq:
-                if cpubus.RD:
+            if busaccess & BUS_ACCESS_MEMREQ:
+                if busaccess & BUS_ACCESS_READ:
                     if address < 0x8000:
                         cart.OnRead(cpubus)
                     elif address < 0xA000:
@@ -118,9 +120,9 @@ def main():
                     else:
                         cpubus.SetData(tmpwram[address & 0x1FFF])
                     
-                    buslog(("- Ext access [$%04X] --> $%02X" % (cpubus.Address, cpubus.Data)))
-                elif cpubus.WR:
-                    buslog(("- Ext access [$%04X] <-- $%02X" % (cpubus.Address, cpubus.Data)))
+                    #buslog(("- Ext access [$%04X] --> $%02X" % (cpubus.Address, cpubus.Data)))
+                elif busaccess & BUS_ACCESS_WRITE:
+                    #buslog(("- Ext access [$%04X] <-- $%02X" % (cpubus.Address, cpubus.Data)))
                     
                     if address < 0x8000:
                         cart.OnWrite(cpubus)
@@ -131,7 +133,7 @@ def main():
                     else:
                         tmpwram[address & 0x1FFF] = cpubus.Data
             else:
-                if cpubus.RD:
+                if busaccess & BUS_ACCESS_READ:
                     if address >= 0xFF00:
                         if address == 0xFFFF:
                             cpubus.SetData(cpu.REG_IE)
@@ -143,9 +145,9 @@ def main():
                         else:
                             cpubus.SetData(tmpio[address & 0xFF])
                     
-                    buslog(("- Int access [$%04X] --> $%02X" % (cpubus.Address, cpubus.Data)))
-                elif cpubus.WR:
-                    buslog(("- Int access [$%04X] <-- $%02X" % (cpubus.Address, cpubus.Data)))
+                    #buslog(("- Int access [$%04X] --> $%02X" % (cpubus.Address, cpubus.Data)))
+                elif busaccess & BUS_ACCESS_WRITE:
+                    #buslog(("- Int access [$%04X] <-- $%02X" % (cpubus.Address, cpubus.Data)))
                     
                     if address >= 0xFF00:
                         if address == 0xFFFF:
@@ -166,7 +168,7 @@ def main():
             buslog("- Bus idle %04X" % cpubus.Address)
             pass
         else:
-            buslog()
+            #buslog()
             pass
 
 if __name__ == '__main__':

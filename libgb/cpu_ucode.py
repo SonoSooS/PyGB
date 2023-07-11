@@ -154,6 +154,7 @@ def HALT(cpu, op):
     # (void)op
     
     cpu.REQ_HALT = True
+    cpu.UpdateResetGating()
     
     return UOP_GENERIC_FETCH
 
@@ -622,6 +623,7 @@ def RETI_M2(cpu, op):
         EI(cpu, op)
     
     cpu.IS_NMI = False
+    cpu.UpdateResetGating()
     
     return UOP_CONTINUE
 

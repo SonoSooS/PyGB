@@ -122,6 +122,17 @@ class Regbank:
         return retval
 
 class CPU:
+    __slots__ = \
+    (
+        'reg', 'bus', 'DV', 'IR',
+        'STATE_CB', 'STATE_IDX',
+        'IME', 'IME_ASK', 'IRQ', 'ISR',
+        'REG_IE', 'REG_IF', 'REG_IF_DELAY1', 'REG_IF_DELAY2', 'REG_IF_CLR',
+        'ProtectOverlay',
+        'DIV', 'DIV_PREV',
+        '__dict__'
+    )
+    
     STATUS_WAKE_EARLY = -3
     STATUS_RESET = -2
     STATUS_WEDGED = -1
@@ -176,6 +187,8 @@ class CPU:
         
         self.DIV = 0
         self.DIV_PREV = 0
+        
+        self.UpdateResetGating()
     
     @staticmethod
     def ToString_Status(status):
@@ -202,6 +215,12 @@ class CPU:
     
     def ResetClear(self):
         self.IS_RESET = False
+    
+    def UpdateResetGating(self):
+        if self.IS_RESET or not self.RESET_STABLE or self.IS_STOP or self.IS_HALT or self.REQ_HALT or self.REQ_STOP or self.REQ_NMI or self.RESET_DELAY or self.WAKE:
+            self.RESET_GATE = True
+        else:
+            self.RESET_GATE = False
     
     def IsProtected(self, address):
         if address >= 0xFE00:
@@ -284,10 +303,12 @@ class CPU:
         self.RESET_STABLE = False
         self.RESET_DELAY = 1
         self.DIV = 0
+        self.UpdateResetGating()
     
     def Clock_HALT(self):
         self.IS_HALT = True
         self.STATE_IDX = 7
+        self.UpdateResetGating()
     
     def StepPre(self):
         '''Call this at the end of the previous M-cycle before beginning the next'''
@@ -313,59 +334,61 @@ class CPU:
     def Step(self):
         status = self.STATUS_RUNNING
         
-        if self.IS_RESET:
-            return self.STATUS_RESET
-        
-        if self.IS_STOP:
-            if not self.WAKE and not self.RESET_STABLE:
-                return self.STATUS_STOPPED
+        if self.RESET_GATE:
+            if self.IS_RESET:
+                return self.STATUS_RESET
             
-            self.IS_STOP = False
-            status = self.STATUS_WAKE
-        
-        if not self.RESET_STABLE:
-            if not self.IRQ:
+            if self.IS_STOP:
+                if not self.WAKE and not self.RESET_STABLE:
+                    return self.STATUS_STOPPED
+                
+                self.IS_STOP = False
+                status = self.STATUS_WAKE
+            
+            if not self.RESET_STABLE:
+                if not self.IRQ:
+                    return self.STATUS_WAKE
+                
+                status = self.STATUS_WAKE_EARLY
+                self.RESET_STABLE = True
+                self.RESET_DELAY = 0
+                self.STATE_IDX = 7
+                self.IS_HALT = False
+            
+            if self.RESET_DELAY:
+                self.RESET_DELAY -= 1
+                if not self.RESET_DELAY:
+                    self.IS_HALT = False
                 return self.STATUS_WAKE
             
-            status = self.STATUS_WAKE_EARLY
-            self.RESET_STABLE = True
-            self.RESET_DELAY = 0
-            self.STATE_IDX = 7
-            self.IS_HALT = False
-        
-        if self.RESET_DELAY:
-            self.RESET_DELAY -= 1
-            if not self.RESET_DELAY:
-                self.IS_HALT = False
-            return self.STATUS_WAKE
-        
-        if self.IS_HALT:
-            if not self.IRQ:
-                return self.STATUS_HALTED
-            
-            self.IS_HALT = False
-            status = self.STATUS_UNHALT
-        
-        if self.REQ_HALT or self.REQ_STOP:
-            if self.REQ_HALT:
-                self.REQ_HALT = False
-                if not self.IRQ:
-                    self.Clock_HALT()
-            if self.REQ_STOP:
-                self.REQ_STOP = False
-                if not self.WAKE:
-                    self.Clock_STOP()
-            
             if self.IS_HALT:
-                if self.IS_STOP:
-                    return self.STATUS_STOPPED
-                else:
+                if not self.IRQ:
                     return self.STATUS_HALTED
-            elif self.IS_STOP:
-                return self.STATUS_STOP_GLITCH
-            else:
-                status = self.STATUS_NOSLEEP
                 
+                self.IS_HALT = False
+                status = self.STATUS_UNHALT
+            
+            if self.REQ_HALT or self.REQ_STOP:
+                if self.REQ_HALT:
+                    self.REQ_HALT = False
+                    if not self.IRQ:
+                        self.Clock_HALT()
+                if self.REQ_STOP:
+                    self.REQ_STOP = False
+                    if not self.WAKE:
+                        self.Clock_STOP()
+                
+                if self.IS_HALT:
+                    if self.IS_STOP:
+                        return self.STATUS_STOPPED
+                    else:
+                        return self.STATUS_HALTED
+                elif self.IS_STOP:
+                    return self.STATUS_STOP_GLITCH
+                else:
+                    status = self.STATUS_NOSLEEP
+                    
+            self.UpdateResetGating()
         
         if self.STATE_IDX < 0:
             self.STATE_IDX = 0
