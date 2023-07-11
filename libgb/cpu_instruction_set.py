@@ -1,7 +1,7 @@
 from .cpu_ucode import *
 
 OP_NOP = (generic_fetch,)
-OP_STOP = None
+OP_STOP = (STOP,)
 OP_LD_a16_SP = (generic_fetch_op1, generic_fetch_op2, LD_a16_SP_M2, LD_a16_SP_M3, generic_fetch)
 OP_JR = (generic_fetch_op1, JR, generic_fetch)
 OP_JR_cc = (generic_cc_check_op1, JR, generic_fetch)

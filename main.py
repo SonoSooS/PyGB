@@ -11,9 +11,8 @@ def buslog(*args, **kwargs): pass
 def main():
     romdata = None
     
-    # 07- is problem
-    #with open(glob('C:/Downloads/07-*.gb')[0], 'rb') as fi:
-    with open('C:/Downloads/cpu_instrs.gb', 'rb') as fi:
+    with open(glob('C:/Downloads/02-*.gb')[0], 'rb') as fi:
+    #with open('C:/Downloads/cpu_instrs.gb', 'rb') as fi:
         romdata = fi.read()
     
     mappertype = Cartridge.ClassFromHeuristics(romdata)

@@ -158,6 +158,15 @@ def HALT(cpu, op):
     
     return UOP_GENERIC_FETCH
 
+def STOP(cpu, op):
+    '''Request STOP mode'''
+    # (void)op
+    
+    cpu.REQ_STOP = True
+    cpu.UpdateResetGating()
+    
+    return UOP_GENERIC_FETCH
+
 #endregion
 
 #region Table 2 (ALU)

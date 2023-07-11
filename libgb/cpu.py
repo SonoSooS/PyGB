@@ -398,6 +398,7 @@ class CPU:
                 self.ISR = True
         
         result = UOP_GENERIC_FETCH
+        op = 0
         
         idx = self.STATE_IDX
         if idx < 7:
@@ -433,7 +434,10 @@ class CPU:
                 
         
         if result == UOP_GENERIC_FETCH:
-            self.DoRead(self.reg.PCi)
+            if op != 0x76:
+                self.DoRead(self.reg.PCi)
+            else:
+                self.DoRead(self.reg.PC)
             self.STATE_IDX = -1
             self.STATE_CB = False
         
