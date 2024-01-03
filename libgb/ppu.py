@@ -260,15 +260,16 @@ class PPU:
                         self.TileFetchCycle = 0
                         continue
                     
-                    if self.SCXCC is not None:
-                        if self.SCXCC == (self.SCX & 7):
-                            self.SCXCC = None
-                        else:
-                            self.SCXCC = (self.SCXCC + 1) & 7
-                            break
-                    
                     if self.BGFIFO:
                         px = self.BGFIFO.ShiftOut()
+                        
+                        if self.SCXCC is not None:
+                            if self.SCXCC == (self.SCX & 7):
+                                self.SCXCC = None
+                            else:
+                                self.SCXCC = (self.SCXCC + 1) & 7
+                                break
+                        
                         fbpos = (self.PixelY * self.FRAMEBUF_STRIDE) + self.PixelX
                         #fbpos = (self.PixelY * self.FRAMEBUF_STRIDE) + self.CycleInScanline
                         
@@ -308,6 +309,8 @@ class PPU:
                         self.OAMScanCycle = 0
                         self.PixelX = 0
                         self.TileOffset = self.SCX >> 3
+                        self.SCXCC = 0
+                        self.BGFIFO.Reset()
                         continue
                     else:
                         self.OAMScanCycle += 1
