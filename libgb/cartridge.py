@@ -9,7 +9,7 @@ MAPPERS = \
 )
 
 class Cartridge:
-    __slots__ = ('ROM', 'NBANKS', 'RAM', 'NRAM', 'OFF0', 'OFFN', 'BANKSEL', 'BANKSEL2', 'BANKMODE', 'RAMENA')
+    __slots__ = ('ROM', 'NBANKS', 'RAM', 'NRAM', 'OFF0', 'OFFN', 'BANKSEL', 'BANKSEL2', 'BANKMODE', 'RAMENA', 'RAMSEL', 'OFFR')
     
     def __init__(self, data, ramsize=0):
         romlen = len(data)
@@ -67,29 +67,44 @@ class Cartridge:
         bus.SetData(data)
     
     def OnReadRAM(self, bus, address):
-        pass
+        if not self.RAMENA:
+            return
+        
+        if not self.RAM:
+            return
+        
+        data = self.RAM[self.OFFR | address]
+        bus.SetData(data)
     
     def OnWriteROM(self, address, data):
         pass
     
     def OnWriteRAM(self, address, data):
-        pass
+        if not self.RAMENA:
+            return
+        
+        if not self.RAM:
+            return
+        
+        self.RAM[self.OFFR | address] = data
     
     def UpdateCache(self):
         self.OFF0 = 0
         self.OFFN = ((self.BANKSEL2 << 22) | (self.BANKSEL << 14)) & ((self.NBANKS << 14) - 1)
+        self.OFFR = ((self.RAMSEL & (self.NRAM - 1)) << 13)
     
     @staticmethod
     def ClassFromHeuristics(hdr):
         mapper = hdr[0x147]
         if mapper < 0x20:
             from .cartridges.MBC1 import MBC1
+            from .cartridges.MBC5 import MBC5
             
             mapper = MAPPERS[mapper]
             if mapper < 0:
                 return None
             
-            return (None, MBC1, None, None, None, None)[mapper]
+            return (Cartridge, MBC1, None, None, None, MBC5)[mapper]
         
         return None
         

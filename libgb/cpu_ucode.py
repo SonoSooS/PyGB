@@ -603,7 +603,7 @@ def DI(cpu, op):
 def EI(cpu, op):
     # (void)op
     
-    cpu.IME_ASK = True
+    cpu.IME_ASK = 2
     
     return UOP_GENERIC_FETCH
 

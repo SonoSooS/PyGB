@@ -31,7 +31,6 @@ class MBC1(Cartridge):
             self.BANKMODE = not not (data & 1)
         
         self.UpdateCache()
-            
     
     def OnWriteRAM(self, address, data):
         if not self.RAMENA:

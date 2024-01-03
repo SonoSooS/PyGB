@@ -151,7 +151,7 @@ class CPU:
         self.bus = Bus()
         
         self.ProtectOverlay = False
-        self.ProtectList = ( (0x00, 0xFF) )
+        self.ProtectList = ( (0x00, 0xFF), )
         
         self.ResetSet()
     
@@ -264,6 +264,9 @@ class CPU:
         #  the IRQ signal is calculated at T30,
         #  which is only effective the next M-cycle
         
+        if not bits:
+            return
+        
         if self.IS_HALT or tcycle < 2:
             self.REG_IF_DELAY1 |= bits
         else:
@@ -321,8 +324,11 @@ class CPU:
         self.IRQ = self.REG_IE & self.REG_IF
         
         if self.IME_ASK:
-            self.IME = True
-            self.IME_ASK = False
+            ask_next = self.IME_ASK - 1
+            if not ask_next:
+                self.IME = True
+                
+            self.IME_ASK = ask_next
         
         self.DIV_PREV = self.DIV
         if not self.IS_STOP:
@@ -412,7 +418,7 @@ class CPU:
                 if result == UOP_GENERIC_FETCH:
                     self.ISR = False
             elif not self.STATE_CB:
-                result = OPCODES[op][idx](self, op)
+                result = OPCODES[op][idx](self, op) # type: ignore
             else:
                 #print("? op $%02X M%u" % (op, idx))
                 result = OPCODES_CB[op][idx](self, op)
