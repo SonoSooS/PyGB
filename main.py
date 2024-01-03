@@ -181,11 +181,17 @@ def main():
     window.Show()
     
     def dumpstate():
+        afstr = ''
+        afstr += 'Z' if cpu.reg.F & (1 << 7) else '-'
+        afstr += 'N' if cpu.reg.F & (1 << 6) else '-'
+        afstr += 'H' if cpu.reg.F & (1 << 5) else '-'
+        afstr += 'C' if cpu.reg.F & (1 << 4) else '-'
+        
         print("! State dump")
         print("- BC: %04X" % cpu.reg.BC)
         print("- DE: %04X" % cpu.reg.DE)
         print("- HL: %04X" % cpu.reg.HL)
-        print("- AF: %02X%01Xx" % (cpu.reg.A, cpu.reg.F >> 4))
+        print("- AF: %02X%01Xx %s" % (cpu.reg.A, cpu.reg.F >> 4, afstr))
         print("- PC: %04X" % cpu.reg.PC)
         print("- SP: %04X" % cpu.reg.SP)
         
@@ -200,6 +206,7 @@ def main():
             datastr = '--'
             if cpu.bus.RD:
                 addrstr += " /RD"
+                datastr = "%02X" % cpu.bus.Data
             if cpu.bus.WR:
                 addrstr += " /WR"
                 datastr = "%02X" % cpu.bus.Data
@@ -211,7 +218,7 @@ def main():
         else:
             print("- Bus: ---- --")
         if cpu.STATE_CB:
-            print("- $CB $%02X M%u" % (cpu.IR, cpu.STATE_IDX - 1))
+            print("- $%02X! M%u" % (cpu.IR, cpu.STATE_IDX - 1))
         else:
             print("- $%02X M%u" % (cpu.IR, cpu.STATE_IDX - 1))
     
