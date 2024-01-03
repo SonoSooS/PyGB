@@ -31,7 +31,7 @@ class Cartridge:
         self.BANKMODE = False
         self.RAMSEL = 0
         self.RAMENA = False
-        self.RAM = array('B', (0,) * ramsize)
+        self.RAM = array('B', [0xFF] * ramsize)
         self.NRAM = ramsize >> 13
         
         self.UpdateCache()
@@ -99,12 +99,35 @@ class Cartridge:
         if mapper < 0x20:
             from .cartridges.MBC1 import MBC1
             from .cartridges.MBC5 import MBC5
+            from .cartridges.MBC3 import MBC3
+            from .cartridges.MBC2 import MBC2
             
             mapper = MAPPERS[mapper]
             if mapper < 0:
                 return None
             
-            return (Cartridge, MBC1, None, None, None, MBC5)[mapper]
+            ramamount = hdr[0x149]
+            if mapper == 2: # MBC2 always has RAM
+                ramamount = 512
+            elif ramamount == 2:
+                ramamount = 8192
+            elif ramamount == 3:
+                ramamount = 32768
+            elif ramamount == 4:
+                ramamount = 131072
+            elif ramamount == 5:
+                ramamount = 65536
+            else:
+                ramamount = 0
+            
+            mappertype = (Cartridge, MBC1, MBC2, MBC3, None, MBC5)[mapper]
+            if mappertype is None:
+                return None
+            
+            def ctor(*args, **kwargs):
+                return mappertype(*args, ramsize=ramamount, **kwargs)
+            
+            return ctor
         
         return None
         

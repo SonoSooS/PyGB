@@ -4,17 +4,7 @@ class MBC1(Cartridge):
     def UpdateCache(self):
         self.OFF0 = (self.BANKSEL2 << 19) & ((self.NBANKS << 14) - 1) if self.BANKMODE else 0
         self.OFFN = ((self.BANKSEL2 << 19) | (self.BANKSEL << 14)) & ((self.NBANKS << 14) - 1)
-    
-    def OnReadRAM(self, bus, address):
-        if not self.RAMENA:
-            return
-        
-        if not self.RAM:
-            return
-        
-        offset = ((self.BANKSEL2 & (self.NRAM - 1)) << 13)
-        data = self.RAM[offset | address]
-        bus.SetData(data)
+        self.OFFR = ((self.BANKSEL2 & (self.NRAM - 1)) << 13) if self.BANKMODE else 0
     
     def OnWriteROM(self, address, data):
         case = (address >> 13) & 3
@@ -32,13 +22,3 @@ class MBC1(Cartridge):
         
         self.UpdateCache()
     
-    def OnWriteRAM(self, address, data):
-        if not self.RAMENA:
-            return
-        
-        if not self.RAM:
-            return
-            
-        offset = ((self.BANKSEL2 & (self.NRAM - 1)) << 13)
-        self.RAM[offset | address] = data
-        
