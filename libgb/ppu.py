@@ -340,6 +340,7 @@ class PPU:
                     #self.LatchedSCY = (self.LatchedSCY + 1) & 255
                     py = 0
                     self.STAT = (self.STAT & 0xFC) | 2
+                    self.Mode = 2
                 
                 if py == self.LYC and self.STAT & (1 << 6):
                     self.PendingIRQ_ |= 2
