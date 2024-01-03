@@ -112,7 +112,7 @@ def main():
     bmi.biCompression = 0 # BI_RGB
     
     winscale = 4
-    fbpos = (8, 0, 176, 144)
+    fbpos = (0, 0, 176, 144)
     #rekt = (0, 0, ppu.FRAMEBUF_STRIDE * winscale, ppu.FRAMEBUF_HEIGHT * winscale)
     rekt = (0, 0, fbpos[2] * winscale, fbpos[3] * winscale)
     
