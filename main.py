@@ -111,7 +111,10 @@ def main():
     #bmi.biCompression = 3 # BI_BITFIELDS
     bmi.biCompression = 0 # BI_RGB
     
-    rekt = (0, 0, ppu.FRAMEBUF_STRIDE, ppu.FRAMEBUF_HEIGHT)
+    winscale = 4
+    fbpos = (8, 0, 176, 144)
+    #rekt = (0, 0, ppu.FRAMEBUF_STRIDE * winscale, ppu.FRAMEBUF_HEIGHT * winscale)
+    rekt = (0, 0, fbpos[2] * winscale, fbpos[3] * winscale)
     
     window: Window = None # type: ignore
     def wndproc(wnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM):
@@ -127,8 +130,8 @@ def main():
             WINAPI.StretchDIBits\
             (
                 dc,
-                0, 0, rekt[2] - rekt[0], rekt[3] - rekt[1],
-                0, 0, ppu.FRAMEBUF_STRIDE, ppu.FRAMEBUF_HEIGHT,
+                rekt[0], rekt[1], rekt[2] - rekt[0], rekt[3] - rekt[1],
+                fbpos[0], ppu.FRAMEBUF_HEIGHT - fbpos[3] + fbpos[1], fbpos[2], fbpos[3],
                 img_ptr,
                 lpbmi,
                 0, # DIB_RGB_COLORS
@@ -171,8 +174,10 @@ def main():
         return Window.DefaultWndProc(wnd, msg, wparam, lparam)
     
     #window = Window(wndproc, 168, 144)
-    window = Window(wndproc, ppu.FRAMEBUF_STRIDE, ppu.FRAMEBUF_HEIGHT)
-    window.SetWindowPos(274, 474)
+    #window = Window(wndproc, ppu.FRAMEBUF_STRIDE, ppu.FRAMEBUF_HEIGHT)
+    window = Window(wndproc, rekt[2] - rekt[0], rekt[3] - rekt[1])
+    #window.SetWindowPos(274, 474)
+    window.SetWindowPos(116, 300)
     window.Show()
     
     def dumpstate():
